@@ -273,7 +273,7 @@ echo '</div>';
 echo '<h1>關於系統</h1>';
 
 echo '<div class="info-card">';
-echo '<h3 class="section-subtitle">弱點掃描稽核系統</h3>';
+echo '<h3 class="section-subtitle">Aduit 檢測管理系統系統</h3>';
 echo '<table class="info-table">';
 
 $system_info = [
