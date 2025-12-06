@@ -25,7 +25,7 @@
 ### 步驟 1: 下載系統檔案
 ```bash
 # 將所有系統檔案放在同一目錄
-cd /path/to/nessus-system
+cd /path/to/audit-system
 ls
 # 應該看到: install.sh, db.sh, run.sh, *.php, *.js, *.css, audit.sql, default
 ```
@@ -72,7 +72,7 @@ http://your-server-ip
 - **帳號**: `admin`
 - **密碼**: `admin`
 
-**重要**: 登入後請立即修改 `/var/www/html/config.php` 中的預設密碼！
+- **重要**: 登入後請立即修改 `/var/www/html/config.php` 中的預設密碼！
 
 ---
 
@@ -281,7 +281,7 @@ sudo chmod 1733 /var/lib/php/sessions
 **解決方法**:
 ```bash
 # 檢查 PHP 上傳設定
-sudo nano /etc/php/8.3/fpm/php.ini
+sudo nano /etc/php/8.4/fpm/php.ini
 
 # 確認以下設定值
 upload_max_filesize = 20M
@@ -289,7 +289,7 @@ post_max_size = 20M
 max_execution_time = 300
 
 # 重啟 PHP-FPM
-sudo systemctl restart php8.3-fpm
+sudo systemctl restart php8.4-fpm
 ```
 
 ---
