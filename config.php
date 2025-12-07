@@ -199,7 +199,7 @@ function validateInt($value, $min = null, $max = null) {
 }
 
 function sanitizeString($str) {
-    return htmlspecialchars(trim($str), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(trim($str), ENT_COMPAT, 'UTF-8');
 }
 
 function validateFileUpload($file, $allowed_extensions = ['nessus', 'xml'], $max_size = 20971520) {
