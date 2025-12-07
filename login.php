@@ -101,14 +101,14 @@ $username_value = isset($_POST['username']) ? sanitizeString($_POST['username'])
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系統登入 - Nessus 弱點管理系統</title>
+    <title>系統登入 - Aduit 檢測管理系統</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-page">
     <div class="login-container">
         <div class="login-header">
             <h1>🔒 系統登入</h1>
-            <p>Nessus 弱點管理系統</p>
+            <p>Aduit 檢測管理系統</p>
         </div>
         
         <div class="login-body">
