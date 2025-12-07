@@ -1,17 +1,13 @@
 <?php
 /**
  * 資料匯入與重整頁面
- * 功能:上傳CSV、Nessus報告、資料清理、匯出
+ * 功能：上傳CSV、Nessus報告、資料清理、匯出
  */
 
 require_once('config.php');
 requireAuth();
 
 $link = getDBConnection();
-
-// ==================== 檔案上傳配置 ====================
-define('UPLOAD_DIR', sys_get_temp_dir() . '/');
-define('MAX_FILE_SIZE', 20971520); // 20MB
 
 // ==================== 處理 POST 請求 ====================
 $message = '';
@@ -21,11 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // CSRF Token 驗證
     if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
         die(showAlert("安全驗證失敗，請重新操作", "danger"));
-    }
-
-    // Rate Limiting - 防止濫用
-    if (!checkRateLimit('import_action', 30, 60)) {
-        die(showAlert("操作過於頻繁，請稍後再試", "warning"));
     }
 
     // 匯出功能
@@ -46,40 +37,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 上傳 Nessus 檔案
     elseif (isset($_POST['upload_nessus']) && isset($_FILES['nessusFile'])) {
         $message = uploadAndParseNessus($link);
-        logAction("上傳 Nessus 報告", strip_tags($message));
+        logAction("上傳 Nessus 報告", $message);
     }
     
     // 上傳使用者清單
     elseif (isset($_POST['user']) && isset($_FILES['filename'])) {
         $message = importCSVFile($link);
-        logAction("上傳使用者清單", strip_tags($message));
+        logAction("上傳使用者清單", $message);
     }
     
     // 資料重整操作
     elseif (isset($_POST['erase0'])) {
         $message = eraseLeadingZeros($link);
-        logAction("去除 IP 前置 0", strip_tags($message));
+        logAction("去除 IP 前置 0", $message);
     } elseif (isset($_POST['erase2'])) {
         $message = executeDelete($link, 
             "DELETE FROM Detail WHERE Name='SSL Certificate Cannot Be Trusted'", 
             "刪除 SSL Certificate 警告");
-        logAction("刪除 SSL Certificate 警告", strip_tags($message));
+        logAction("刪除 SSL Certificate 警告", $message);
     } elseif (isset($_POST['erase3'])) {
         $message = executeDelete($link, 
             "DELETE FROM Detail WHERE Name='SSL Self-Signed Certificate'", 
             "刪除 SSL Self-Signed 警告");
-        logAction("刪除 SSL Self-Signed 警告", strip_tags($message));
+        logAction("刪除 SSL Self-Signed 警告", $message);
     } elseif (isset($_POST['erase4'])) {
         $message = eraseNonUserHosts($link);
-        logAction("去除使用者列表以外的弱掃資料", strip_tags($message));
+        logAction("去除使用者列表以外的弱掃資料", $message);
     } elseif (isset($_POST['erase6'])) {
         $message = eraseDuplicateData($link);
-        logAction("去除重複資料", strip_tags($message));
+        logAction("去除重複資料", $message);
     } elseif (isset($_POST['erase7'])) {
         $message = executeDelete($link, 
             "DELETE FROM Detail WHERE Priority='4'", 
             "刪除 INFO 等級");
-        logAction("刪除 INFO 等級", strip_tags($message));
+        logAction("刪除 INFO 等級", $message);
     }
 }
 
@@ -113,10 +104,9 @@ $csrf_token = generateCSRFToken();
     
     <form action="import.php" method="post" enctype="multipart/form-data" onsubmit="return validateCSVUpload(this);">
         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo MAX_FILE_SIZE; ?>">
         
         <div class="file-upload-group">
-            <input type="file" name="filename" id="csvFile" accept=".csv,text/csv" required class="upload-input">
+            <input type="file" name="filename" id="csvFile" accept=".csv" required class="upload-input">
             <span class="file-hint">僅接受 .csv 檔案，最大 20MB</span>
         </div>
         
@@ -127,9 +117,9 @@ $csrf_token = generateCSRFToken();
         </div>
         
         <div class="format-note">
-            <strong>檔案格式說明:</strong><br>
+            <strong>檔案格式說明：</strong><br>
             <code class="code-highlight">IP,單位,姓名,類型</code><br>
-            <span class="text-muted text-small">範例:192.168.1.1,圖資中心,王小明,資訊</span>
+            <span class="text-muted text-small">範例：192.168.1.1,資訊室,王小明,桌機</span>
         </div>
     </form>
 </div>
@@ -140,10 +130,9 @@ $csrf_token = generateCSRFToken();
     
     <form action="import.php" method="post" enctype="multipart/form-data" onsubmit="return validateNessusUpload(this);">
         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo MAX_FILE_SIZE; ?>">
         
         <div class="file-upload-group">
-            <input type="file" name="nessusFile" id="nessusFile" accept=".nessus,.xml,application/xml,text/xml" required class="upload-input">
+            <input type="file" name="nessusFile" id="nessusFile" accept=".nessus,.xml" required class="upload-input">
             <span class="file-hint">僅接受 .nessus 或 .xml 檔案，最大 20MB</span>
         </div>
         
@@ -153,7 +142,7 @@ $csrf_token = generateCSRFToken();
         </div>
         
         <div class="warning-note">
-            <strong>自動過濾規則:</strong>
+            <strong>自動過濾規則：</strong>
             <ul style="margin: 8px 0; padding-left: 20px;">
                 <li>Port 為 0 且 Risk Factor 為 None 的項目</li>
                 <li>包含 "Nessus SYN scanner" 的項目</li>
@@ -251,12 +240,15 @@ function hideUploadSection(sectionId) {
     }
 }
 
+/**
+ * 確認資料清理操作
+ */
 function confirmCleanAction(event) {
     const button = event.submitter;
     const actionType = button.getAttribute('data-action');
     
     if (actionType === 'danger') {
-        return confirm('此操作將刪除資料，確定要繼續嗎？\n\n此操作無法復原！');
+        return confirm('⚠️ 此操作將刪除資料，確定要繼續嗎？\n\n此操作無法復原！');
     }
     
     return confirm('確定要執行此資料重整操作嗎？');
@@ -277,38 +269,29 @@ $link->close();
  */
 function uploadAndParseNessus($link) {
     if (!function_exists('simplexml_load_file')) {
-        return showAlert("系統錯誤:缺少 <code>php-xml</code> 套件", "danger");
+        return showAlert("系統錯誤：缺少 <code>php-xml</code> 套件", "danger");
     }
     
     $file = $_FILES['nessusFile'];
     
-    // 驗證檔案
-    $validation = validateFileUpload($file, ['nessus', 'xml'], MAX_FILE_SIZE);
+    $validation = validateFileUpload($file, ['nessus', 'xml'], 20971520);
     if ($validation !== true) {
         return showAlert($validation, "danger");
     }
     
-    // 額外 MIME 類型檢查
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
-    
-    $allowed_mimes = ['text/xml', 'application/xml', 'text/plain'];
-    if (!in_array($mime, $allowed_mimes)) {
-        return showAlert("無效的檔案類型", "danger");
-    }
-    
-    // 檢查檔案內容開頭是否為 XML
-    $file_start = file_get_contents($file['tmp_name'], false, null, 0, 100);
-    if (strpos($file_start, '<?xml') === false && strpos($file_start, '<NessusClientData') === false) {
-        return showAlert("檔案內容不是有效的 XML 格式", "danger");
-    }
-    
     try {
+        // PHP 8.0+ 不再需要 libxml_disable_entity_loader()
+        // 外部實體載入預設已停用
         libxml_use_internal_errors(true);
-        libxml_disable_entity_loader(true); // 防止 XXE 攻擊
         
-        $xml = simplexml_load_file($file['tmp_name'], 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET);
+        // 確保檔案路徑有效
+        $file_path = $file['tmp_name'];
+        if (!file_exists($file_path)) {
+            return showAlert("上傳的檔案不存在，請重試", "danger");
+        }
+        
+        // 使用 LIBXML_NONET 防止網路存取
+        $xml = simplexml_load_file($file_path, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET);
         
         if ($xml === false) {
             $errors = libxml_get_errors();
@@ -333,83 +316,58 @@ function uploadAndParseNessus($link) {
         
         $success_count = 0;
         $filtered_count = 0;
-        $error_count = 0;
         
-        // 使用交易提高效能
-        $link->begin_transaction();
+        $stmt = $link->prepare("INSERT INTO Detail (Risk, Host, Protocol, Port, Name, Priority) VALUES (?, ?, ?, ?, ?, ?)");
         
-        try {
-            $stmt = $link->prepare("INSERT INTO Detail (Risk, Host, Protocol, Port, Name, Priority) VALUES (?, ?, ?, ?, ?, ?)");
+        foreach ($xml->Report->ReportHost as $host) {
+            $ip = sanitizeString((string)$host['name']);
             
-            foreach ($xml->Report->ReportHost as $host) {
-                $ip = trim((string)$host['name']);
+            if (!validateIP($ip)) {
+                error_log("跳過無效 IP: {$ip}");
+                continue;
+            }
+            
+            foreach ($host->ReportItem as $item) {
+                $risk_factor = sanitizeString((string)$item->risk_factor);
+                $protocol = sanitizeString((string)$item['protocol']);
+                $port = sanitizeString((string)$item['port']);
+                $plugin_name = sanitizeString((string)$item['pluginName']);
                 
-                if (!validateIP($ip)) {
-                    error_log("跳過無效 IP: {$ip}");
+                // 過濾規則 1: Port 0 且 Risk None
+                if ($port == '0' && $risk_factor == 'None') {
+                    $filtered_count++;
                     continue;
                 }
                 
-                foreach ($host->ReportItem as $item) {
-                    $risk_factor = trim((string)$item->risk_factor);
-                    $protocol = trim((string)$item['protocol']);
-                    $port = trim((string)$item['port']);
-                    $plugin_name = trim((string)$item['pluginName']);
-                    
-                    // 過濾規則 1: Port 0 且 Risk None
-                    if ($port == '0' && $risk_factor == 'None') {
-                        $filtered_count++;
-                        continue;
-                    }
-                    
-                    // 過濾規則 2: Nessus SYN scanner
-                    if (strpos($plugin_name, 'Nessus SYN scanner') !== false) {
-                        $filtered_count++;
-                        continue;
-                    }
-                    
-                    // 限制長度
-                    $plugin_name = mb_substr($plugin_name, 0, 500, 'UTF-8');
-                    
-                    $priority = $risk_priority[$risk_factor] ?? 4;
-                    
-                    try {
-                        $stmt->bind_param('sssssi', $risk_factor, $ip, $protocol, $port, $plugin_name, $priority);
-                        if ($stmt->execute()) {
-                            $success_count++;
-                        } else {
-                            $error_count++;
-                        }
-                    } catch (Exception $e) {
-                        error_log("Nessus 匯入錯誤 [{$ip}:{$port}]: " . $e->getMessage());
-                        $error_count++;
-                    }
+                // 過濾規則 2: Nessus SYN scanner
+                if (strpos($plugin_name, 'Nessus SYN scanner') !== false) {
+                    $filtered_count++;
+                    continue;
+                }
+                
+                $priority = $risk_priority[$risk_factor] ?? 4;
+                
+                try {
+                    $stmt->bind_param('sssssi', $risk_factor, $ip, $protocol, $port, $plugin_name, $priority);
+                    $stmt->execute();
+                    $success_count++;
+                } catch (Exception $e) {
+                    error_log("Nessus 匯入錯誤 [{$ip}:{$port}]: " . $e->getMessage());
                 }
             }
-            
-            $stmt->close();
-            $link->commit();
-            
-            if ($success_count == 0) {
-                return showAlert("檔案解析完成，但沒有資料寫入。過濾了 {$filtered_count} 筆資料。", "warning");
-            }
-            
-            $msg = "Nessus 檔案匯入完成！<br>成功寫入 <strong>{$success_count}</strong> 筆資料，過濾了 <strong>{$filtered_count}</strong> 筆資料";
-            if ($error_count > 0) {
-                $msg .= "，<strong>{$error_count}</strong> 筆失敗";
-            }
-            
-            return showAlert($msg, "success");
-            
-        } catch (Exception $e) {
-            $link->rollback();
-            throw $e;
         }
+        
+        $stmt->close();
+        
+        if ($success_count == 0) {
+            return showAlert("檔案解析完成，但沒有資料寫入。過濾了 {$filtered_count} 筆資料。", "warning");
+        }
+        
+        return showAlert("Nessus 檔案匯入完成！<br>成功寫入 <strong>{$success_count}</strong> 筆資料，過濾了 <strong>{$filtered_count}</strong> 筆資料。", "success");
         
     } catch (Exception $e) {
         error_log("Nessus 解析錯誤: " . $e->getMessage());
-        return showAlert("解析過程發生錯誤:" . sanitizeString($e->getMessage()), "danger");
-    } finally {
-        libxml_disable_entity_loader(false);
+        return showAlert("解析過程發生錯誤：" . sanitizeString($e->getMessage()), "danger");
     }
 }
 
@@ -418,7 +376,7 @@ function uploadAndParseNessus($link) {
  */
 function importCSVFile($link) {
     $file = $_FILES['filename'];
-    $validation = validateFileUpload($file, ['csv'], MAX_FILE_SIZE);
+    $validation = validateFileUpload($file, ['csv'], 20971520);
     if ($validation !== true) {
         return showAlert($validation, "danger");
     }
@@ -428,16 +386,15 @@ function importCSVFile($link) {
     $mime = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
     
-    $allowed_mimes = ['text/plain', 'text/csv', 'application/csv', 'application/vnd.ms-excel', 'text/x-csv'];
+    $allowed_mimes = ['text/plain', 'text/csv', 'application/csv', 'application/vnd.ms-excel'];
     if (!in_array($mime, $allowed_mimes)) {
-        return showAlert("無效的檔案格式 (MIME: {$mime})", "danger");
+        return showAlert("無效的檔案格式", "danger");
     }
     
-    // 使用臨時檔案
+    // 確保檔案路徑有效
     $upload_path = $file['tmp_name'];
-    
-    if (!file_exists($upload_path) || !is_readable($upload_path)) {
-        return showAlert("檔案上傳失敗:無法存取上傳的檔案", "danger");
+    if (!file_exists($upload_path)) {
+        return showAlert("上傳的檔案不存在，請重試", "danger");
     }
     
     try {
@@ -450,69 +407,55 @@ function importCSVFile($link) {
         $error_count = 0;
         $line_number = 0;
         
-        // 使用交易提高效能
-        $link->begin_transaction();
+        $stmt = $link->prepare("INSERT INTO Computer (Host, Unit, Name, Property) VALUES (?, ?, ?, ?)");
         
-        try {
-            $stmt = $link->prepare("INSERT INTO Computer (Host, Unit, Name, Property) VALUES (?, ?, ?, ?)");
+        while (($row = fgetcsv($csv_handle, 1000, ',')) !== false) {
+            $line_number++;
             
-            while (($row = fgetcsv($csv_handle, 2000, ',')) !== false) {
-                $line_number++;
-                
-                // 編碼轉換
-                $row = array_map(function($v) {
-                    return mb_convert_encoding($v, "UTF-8", "BIG5");
-                }, $row);
-                
-                // 跳過空行
-                if (empty(array_filter($row))) continue;
-                
-                // 跳過標題行
-                if (trim($row[0]) == "IP") continue;
-                
-                // 確保有足夠欄位
-                if (count($row) < 4) {
-                    $error_count++;
-                    continue;
-                }
-                
-                $host = trim($row[0]);
-                $unit = trim($row[1]);
-                $name = trim($row[2]);
-                $property = trim($row[3]);
-                
-                if (!validateIP($host)) {
-                    error_log("Line {$line_number}: 無效的 IP 地址: {$host}");
-                    $error_count++;
-                    continue;
-                }
-                
-                // 限制欄位長度
-                $unit = mb_substr($unit, 0, 100, 'UTF-8');
-                $name = mb_substr($name, 0, 50, 'UTF-8');
-                $property = mb_substr($property, 0, 50, 'UTF-8');
-                
-                try {
-                    $stmt->bind_param('ssss', $host, $unit, $name, $property);
-                    if ($stmt->execute()) {
-                        $success_count++;
-                    } else {
-                        $error_count++;
-                    }
-                } catch (Exception $e) {
-                    error_log("Line {$line_number} 匯入錯誤: " . $e->getMessage());
-                    $error_count++;
-                }
+            // 編碼轉換
+            $row = array_map(function($v) {
+                return mb_convert_encoding($v, "UTF-8", "BIG5");
+            }, $row);
+            
+            // 跳過空行
+            if (empty(array_filter($row))) continue;
+            
+            // 跳過標題行
+            if (trim($row[0]) == "IP") continue;
+            
+            // 確保有足夠欄位
+            if (count($row) < 4) {
+                $error_count++;
+                continue;
             }
             
-            $stmt->close();
-            $link->commit();
+            $host = trim($row[0]);
+            $unit = trim($row[1]);
+            $name = trim($row[2]);
+            $property = trim($row[3]);
             
-        } catch (Exception $e) {
-            $link->rollback();
-            throw $e;
+            if (!validateIP($host)) {
+                error_log("Line {$line_number}: 無效的 IP 地址: {$host}");
+                $error_count++;
+                continue;
+            }
+            
+            // 限制欄位長度並使用 sanitizeString
+            $unit = mb_substr(sanitizeString($unit), 0, 100, 'UTF-8');
+            $name = mb_substr(sanitizeString($name), 0, 50, 'UTF-8');
+            $property = mb_substr(sanitizeString($property), 0, 50, 'UTF-8');
+            
+            try {
+                $stmt->bind_param('ssss', $host, $unit, $name, $property);
+                $stmt->execute();
+                $success_count++;
+            } catch (Exception $e) {
+                error_log("Line {$line_number} 匯入錯誤: " . $e->getMessage());
+                $error_count++;
+            }
         }
         
+        $stmt->close();
         fclose($csv_handle);
         
         if ($success_count == 0) {
@@ -529,7 +472,7 @@ function importCSVFile($link) {
         
     } catch (Exception $e) {
         error_log("CSV 匯入錯誤: " . $e->getMessage());
-        return showAlert("匯入過程發生錯誤:" . sanitizeString($e->getMessage()), "danger");
+        return showAlert("匯入過程發生錯誤：" . sanitizeString($e->getMessage()), "danger");
     }
 }
 
@@ -538,10 +481,6 @@ function importCSVFile($link) {
  */
 function exportComputerData($link) {
     $result = $link->query("SELECT Host, Unit, Name, Property FROM Computer ORDER BY INET_ATON(Host)");
-    
-    if (!$result) {
-        die(showAlert("查詢失敗", "danger"));
-    }
     
     $content = mb_convert_encoding("IP,單位,姓名,類型\r\n", "BIG5", "UTF-8");
     
@@ -567,10 +506,6 @@ function exportNessusData($link) {
         ORDER BY Priority, INET_ATON(Host), Name, Port
     ");
     
-    if (!$result) {
-        die(showAlert("查詢失敗", "danger"));
-    }
-    
     $content = mb_convert_encoding("Risk,Host,Protocol,Port,Name\r\n", "BIG5", "UTF-8");
     
     while ($row = $result->fetch_assoc()) {
@@ -590,9 +525,9 @@ function exportNessusData($link) {
  */
 function exportDemoFile() {
     $content = mb_convert_encoding("IP,單位,姓名,類型\r\n", "BIG5", "UTF-8");
-    $content .= mb_convert_encoding("192.168.1.1,圖資中心,王小明,資訊\r\n", "BIG5", "UTF-8");
-    $content .= mb_convert_encoding("192.168.1.2,會計室,李小華,行政\r\n", "BIG5", "UTF-8");
-    $content .= mb_convert_encoding("192.168.1.3,電機系,陳大偉,教學\r\n", "BIG5", "UTF-8");
+    $content .= mb_convert_encoding("192.168.1.1,資訊室,王小明,桌機\r\n", "BIG5", "UTF-8");
+    $content .= mb_convert_encoding("192.168.1.2,會計室,李小華,筆電\r\n", "BIG5", "UTF-8");
+    $content .= mb_convert_encoding("192.168.1.3,人事室,陳大偉,桌機\r\n", "BIG5", "UTF-8");
     
     outputCSV("Computer_Demo.csv", $content);
 }
@@ -611,7 +546,7 @@ function eraseLeadingZeros($link) {
         $ip_parts = array_map('intval', $ip_parts);
         $clean_ip = implode(".", $ip_parts);
         
-        if ($clean_ip !== $row['Host'] && validateIP($clean_ip)) {
+        if ($clean_ip !== $row['Host']) {
             $stmt->bind_param('si', $clean_ip, $row['ID']);
             $stmt->execute();
             $updated++;
@@ -630,9 +565,7 @@ function eraseNonUserHosts($link) {
     $host_arr = [];
     
     while ($row = $result->fetch_assoc()) {
-        if (validateIP($row['Host'])) {
-            $host_arr[] = $row['Host'];
-        }
+        $host_arr[] = $row['Host'];
     }
     
     if (empty($host_arr)) {
