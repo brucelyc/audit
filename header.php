@@ -25,7 +25,7 @@ echo <<<HTML
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Audit - Nessus 弱點管理系統</title>
+<title>Aduit 檢測管理系統</title>
 
 <!-- 引用外部樣式表 -->
 <link rel="stylesheet" href="style.css">
