@@ -45,8 +45,11 @@ check_files() {
     
     local missing_files=()
     
-    if [ ! -f "default" ]; then
-        missing_files+=("default (Nginx 設定檔)")
+    # Nginx 設定檔不是必需的，因為會自動生成
+    if [ -f "default" ]; then
+        log_info "找到用戶提供的 Nginx 設定檔"
+    else
+        log_info "未找到 Nginx 設定檔，將自動生成"
     fi
     
     if [ ! -f "config.php" ]; then
@@ -117,6 +120,100 @@ install_packages() {
 configure_nginx() {
     log_info "設定 Nginx..."
     
+    # 偵測 PHP-FPM socket 路徑
+    log_info "偵測 PHP-FPM socket 路徑..."
+    local php_socket=""
+    
+    # 讀取已儲存的 PHP 版本
+    local php_ver=""
+    if [ -f ".php_version" ]; then
+        php_ver=$(cat .php_version)
+    fi
+    
+    # 檢查可能的 socket 路徑
+    local possible_sockets=(
+        "/run/php/php${php_ver}-fpm.sock"
+        "/var/run/php/php${php_ver}-fpm.sock"
+        "/run/php-fpm/php${php_ver}-fpm.sock"
+    )
+    
+    for sock in "${possible_sockets[@]}"; do
+        if [ -S "$sock" ] || [ -e "$sock" ]; then
+            php_socket=$sock
+            log_info "找到 socket: $sock"
+            break
+        fi
+    done
+    
+    # 如果找不到 socket，啟動服務後再檢查
+    if [ -z "$php_socket" ] && [ -n "$php_ver" ]; then
+        log_info "啟動 PHP-FPM 服務..."
+        $SUDO systemctl start php${php_ver}-fpm 2>/dev/null || \
+        $SUDO service php${php_ver}-fpm start 2>/dev/null || true
+        sleep 2
+        
+        for sock in "${possible_sockets[@]}"; do
+            if [ -S "$sock" ]; then
+                php_socket=$sock
+                log_info "服務啟動後找到 socket: $sock"
+                break
+            fi
+        done
+    fi
+    
+    # 如果還是找不到，使用預設路徑
+    if [ -z "$php_socket" ] && [ -n "$php_ver" ]; then
+        php_socket="/run/php/php${php_ver}-fpm.sock"
+        log_warn "使用預設 socket 路徑: $php_socket"
+    fi
+    
+    # 生成 Nginx 設定檔
+    log_info "生成 Nginx 設定檔..."
+    local config_file="/tmp/nginx_default"
+    
+    cat > "$config_file" << 'EOF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.php index.html index.htm;
+
+    server_name _;
+
+    # 增加上傳大小限制
+    client_max_body_size 20M;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # PHP 處理
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+EOF
+
+    if [ -n "$php_socket" ]; then
+        echo "        fastcgi_pass unix:${php_socket};" >> "$config_file"
+    else
+        echo "        fastcgi_pass unix:/run/php/php-fpm.sock;" >> "$config_file"
+    fi
+    
+    cat >> "$config_file" << 'EOF'
+    }
+
+    # 拒絕訪問 .htaccess 檔案
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # 安全標頭
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+EOF
+    
     # 備份原始設定檔
     if [ -f "/etc/nginx/sites-available/default" ]; then
         log_info "備份原始 Nginx 設定檔..."
@@ -125,25 +222,30 @@ configure_nginx() {
     fi
     
     # 複製新設定檔
-    if [ -f "default" ]; then
-        log_info "複製 Nginx 設定檔..."
-        $SUDO cp ./default /etc/nginx/sites-available/
-        
-        # 確保符號連結存在
-        if [ ! -L "/etc/nginx/sites-enabled/default" ]; then
-            $SUDO ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-        fi
-        
-        # 測試 Nginx 設定
-        if $SUDO nginx -t; then
-            log_info "Nginx 設定檔驗證成功"
-        else
-            log_error "Nginx 設定檔驗證失敗"
-            exit 1
-        fi
+    log_info "安裝 Nginx 設定檔..."
+    $SUDO cp "$config_file" /etc/nginx/sites-available/default
+    $SUDO rm -f "$config_file"
+    
+    # 確保符號連結存在
+    if [ ! -L "/etc/nginx/sites-enabled/default" ]; then
+        $SUDO ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+    fi
+    
+    # 測試 Nginx 設定
+    if $SUDO nginx -t 2>&1 | grep -q "successful"; then
+        log_info "Nginx 設定檔驗證成功"
     else
-        log_error "找不到 Nginx 設定檔 'default'"
-        exit 1
+        log_error "Nginx 設定檔驗證失敗"
+        echo ""
+        $SUDO nginx -t
+        echo ""
+        log_warn "將嘗試使用預設設定..."
+        
+        # 如果用戶有提供 default 檔案，使用它
+        if [ -f "default" ]; then
+            log_info "使用用戶提供的 default 設定檔..."
+            $SUDO cp ./default /etc/nginx/sites-available/default
+        fi
     fi
 }
 
@@ -239,7 +341,7 @@ show_info() {
     log_info "安裝完成！"
     echo ""
     echo "=========================================="
-    echo "  Nessus 弱點管理系統安裝完成"
+    echo "  Aduit 檢測管理系統安裝完成"
     echo "=========================================="
     echo ""
     echo "下一步操作:"
@@ -260,7 +362,7 @@ show_info() {
 # 主程序
 main() {
     echo "=========================================="
-    echo "  Nessus 弱點管理系統 - 安裝程式"
+    echo "  Aduit 檢測管理系統 - 安裝程式"
     echo "=========================================="
     echo ""
     
