@@ -160,7 +160,7 @@ $username_value = isset($_POST['username']) ? sanitizeString($_POST['username'])
         </div>
         
         <div class="login-footer">
-            <p>© 2025 Nessus 弱點管理系統 | 請妥善保管您的帳號密碼</p>
+            <p>© 2025 Aduit 檢測管理系統 | 請妥善保管您的帳號密碼</p>
         </div>
     </div>
 </body>
