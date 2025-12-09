@@ -57,10 +57,10 @@ $upload_size_mb = (int)$upload_max;
 $post_size_mb = (int)$post_max;
 $upload_warning = '';
 
-if ($upload_size_mb < 20 || $post_size_mb < 20) {
+if ($upload_size_mb < 50 || $post_size_mb < 50) {
     $upload_warning = showAlert(
         '<strong>⚠️ 建議調整：</strong>您的 PHP 上傳檔案大小限制可能不足。<br>' .
-        '建議將 upload_max_filesize 和 post_max_size 調整為至少 20M，以確保能順利上傳較大的 Nessus 掃描報告。<br>' .
+        '建議將 upload_max_filesize 和 post_max_size 調整為至少 50M，以確保能順利上傳較大的 Nessus 掃描報告。<br>' .
         '<a href="#upload-config" style="color: #856404; text-decoration: underline;">查看調整說明 ↓</a>',
         'warning'
     );
@@ -163,8 +163,8 @@ echo '<h3 class="config-title">步驟 1: 修改 php.ini 設定檔</h3>';
 echo '<p class="text-muted">找到並編輯 php.ini 檔案（通常位於 <code>/etc/php/8.x/apache2/php.ini</code> 或 <code>/etc/php.ini</code>）</p>';
 
 echo '<pre class="code-block">找到以下參數並修改：
-upload_max_filesize = 20M
-post_max_size = 25M
+upload_max_filesize = 50M
+post_max_size = 100M
 max_execution_time = 300
 max_input_time = 300
 memory_limit = 256M</pre>';
@@ -210,8 +210,8 @@ echo '<pre class="code-block">http {
 echo '<p class="text-muted mt-1"><strong>2.2 修改 PHP-FPM 設定</strong></p>';
 echo '<p class="text-muted">編輯 <code>/etc/php/8.x/fpm/php.ini</code></p>';
 
-echo '<pre class="code-block">upload_max_filesize = 20M
-post_max_size = 25M
+echo '<pre class="code-block">upload_max_filesize = 50M
+post_max_size = 100M
 max_execution_time = 300
 max_input_time = 300
 memory_limit = 256M</pre>';
