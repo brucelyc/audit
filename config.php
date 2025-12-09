@@ -202,7 +202,7 @@ function sanitizeString($str) {
     return htmlspecialchars(trim($str), ENT_COMPAT, 'UTF-8');
 }
 
-function validateFileUpload($file, $allowed_extensions = ['nessus', 'xml'], $max_size = 20971520) {
+function validateFileUpload($file, $allowed_extensions = ['nessus', 'xml'], $max_size = 50 * 1024 * 1024) {
     if (!isset($file['error']) || is_array($file['error'])) {
         return '檔案上傳錯誤';
     }
