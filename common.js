@@ -280,9 +280,9 @@ function validateCSVUpload(form) {
         return false;
     }
     
-    // 檢查檔案大小 (20MB)
-    if (file.size > 20 * 1024 * 1024) {
-        alert('檔案大小不能超過 20MB');
+    // 檢查檔案大小 (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+        alert('檔案大小不能超過 50MB');
         return false;
     }
     
@@ -310,9 +310,9 @@ function validateNessusUpload(form) {
         return false;
     }
     
-    // 檢查檔案大小 (20MB)
-    if (file.size > 20 * 1024 * 1024) {
-        alert('檔案大小不能超過 20MB');
+    // 檢查檔案大小 (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+        alert('檔案大小不能超過 50MB');
         return false;
     }
     
