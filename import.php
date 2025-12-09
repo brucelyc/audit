@@ -107,7 +107,7 @@ $csrf_token = generateCSRFToken();
         
         <div class="file-upload-group">
             <input type="file" name="filename" id="csvFile" accept=".csv" required class="upload-input">
-            <span class="file-hint">僅接受 .csv 檔案，最大 20MB</span>
+            <span class="file-hint">僅接受 .csv 檔案，最大 50MB</span>
         </div>
         
         <div class="button-group mt-2">
@@ -133,7 +133,7 @@ $csrf_token = generateCSRFToken();
         
         <div class="file-upload-group">
             <input type="file" name="nessusFile" id="nessusFile" accept=".nessus,.xml" required class="upload-input">
-            <span class="file-hint">僅接受 .nessus 或 .xml 檔案，最大 20MB</span>
+            <span class="file-hint">僅接受 .nessus 或 .xml 檔案，最大 50MB</span>
         </div>
         
         <div class="button-group mt-2">
@@ -274,7 +274,7 @@ function uploadAndParseNessus($link) {
     
     $file = $_FILES['nessusFile'];
     
-    $validation = validateFileUpload($file, ['nessus', 'xml'], 20971520);
+    $validation = validateFileUpload($file, ['nessus', 'xml'], 52428800);
     if ($validation !== true) {
         return showAlert($validation, "danger");
     }
@@ -376,7 +376,7 @@ function uploadAndParseNessus($link) {
  */
 function importCSVFile($link) {
     $file = $_FILES['filename'];
-    $validation = validateFileUpload($file, ['csv'], 20971520);
+    $validation = validateFileUpload($file, ['csv'], 52428800);
     if ($validation !== true) {
         return showAlert($validation, "danger");
     }
