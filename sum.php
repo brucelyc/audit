@@ -123,7 +123,8 @@ function displayByCategory($link) {
         foreach ($rows as $row) {
             echo '<tr>';
             echo '<td class="text-center">' . $i . '</td>';
-            echo '<td>' . sanitizeString($row['Name']) . '</td>';
+//            echo '<td>' . sanitizeString($row['Name']) . '</td>';
+            echo '<td>' . sanitizeOutput($row['Name']) . '</td>';
             echo '<td class="text-center">' . getRiskBadge($row['Risk']) . '</td>';
             echo '<td class="text-center"><strong>' . intval($row['Hosts']) . '</strong></td>';
             echo '</tr>';
@@ -293,7 +294,8 @@ function displayDetail($link, $mode) {
             echo '<td class="text-center">' . getRiskBadge($item['risk']) . '</td>';
             echo '<td class="text-center">' . sanitizeString($item['protocol']) . '</td>';
             echo '<td class="text-center">' . sanitizeString($item['port']) . '</td>';
-            echo '<td>' . sanitizeString($item['name']) . '</td>';
+//            echo '<td>' . sanitizeString($item['name']) . '</td>';
+            echo '<td>' . sanitizeOutput($item['name']) . '</td>';
             echo '</tr>';
             $i++;
         }

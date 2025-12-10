@@ -274,7 +274,7 @@ function uploadAndParseNessus($link) {
     
     $file = $_FILES['nessusFile'];
     
-    $validation = validateFileUpload($file, ['nessus', 'xml'], 50 * 1024 * 1024);
+    $validation = validateFileUpload($file, ['nessus', 'xml'], 52428800);
     if ($validation !== true) {
         return showAlert($validation, "danger");
     }
@@ -376,7 +376,7 @@ function uploadAndParseNessus($link) {
  */
 function importCSVFile($link) {
     $file = $_FILES['filename'];
-    $validation = validateFileUpload($file, ['csv'], 50 * 1024 * 1024);
+    $validation = validateFileUpload($file, ['csv'], 52428800);
     if ($validation !== true) {
         return showAlert($validation, "danger");
     }

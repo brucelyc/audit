@@ -198,11 +198,23 @@ function validateInt($value, $min = null, $max = null) {
     return $int;
 }
 
+/*
 function sanitizeString($str) {
     return htmlspecialchars(trim($str), ENT_COMPAT, 'UTF-8');
 }
+*/
 
-function validateFileUpload($file, $allowed_extensions = ['nessus', 'xml'], $max_size = 50 * 1024 * 1024) {
+// 用於輸入清理（只做 trim）
+function sanitizeString($str) {
+    return trim($str);
+}
+
+// 用於輸出顯示（做 HTML 編碼）
+function sanitizeOutput($str) {
+    return htmlspecialchars($str, ENT_COMPAT, 'UTF-8');
+}
+
+function validateFileUpload($file, $allowed_extensions = ['nessus', 'xml'], $max_size = 52428800) {
     if (!isset($file['error']) || is_array($file['error'])) {
         return '檔案上傳錯誤';
     }
