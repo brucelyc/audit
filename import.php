@@ -265,7 +265,7 @@ $link->close();
 // ==================== 核心功能函數 ====================
 
 /**
- * 上傳並解析 Nessus 檔案
+ * 上傳並解析 Nessus 檔案 (改用 Severity 數值判斷)
  */
 function uploadAndParseNessus($link) {
     if (!function_exists('simplexml_load_file')) {
@@ -280,17 +280,13 @@ function uploadAndParseNessus($link) {
     }
     
     try {
-        // PHP 8.0+ 不再需要 libxml_disable_entity_loader()
-        // 外部實體載入預設已停用
         libxml_use_internal_errors(true);
         
-        // 確保檔案路徑有效
         $file_path = $file['tmp_name'];
         if (!file_exists($file_path)) {
             return showAlert("上傳的檔案不存在，請重試", "danger");
         }
         
-        // 使用 LIBXML_NONET 防止網路存取
         $xml = simplexml_load_file($file_path, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET);
         
         if ($xml === false) {
@@ -308,11 +304,19 @@ function uploadAndParseNessus($link) {
             return showAlert("Nessus 檔案中沒有掃描結果", "warning");
         }
         
-        // 風險等級優先權對應
-        $risk_priority = [
-            "Critical" => 0, "High" => 1, "Medium" => 2, "Low" => 3, "None" => 4,
-            "CRITICAL" => 0, "HIGH" => 1, "MEDIUM" => 2, "LOW" => 3, "NONE" => 4
+        // 🚀 關鍵修正：定義 Severity 數值與文字風險等級的對應關係
+        // Nessus severity: 0=None/Info, 1=Low, 2=Medium, 3=High, 4=Critical
+        $severity_map = [
+            4 => 'Critical',
+            3 => 'High',
+            2 => 'Medium',
+            1 => 'Low',
+            0 => 'None'
         ];
+
+        // 數值優先權 (Priority) 對應：數字越小越優先 (0=Critical)
+        // 為了與原程式碼的 Priority (0=Critical, 4=None) 保持一致，我們進行反向映射。
+        // Priority = 4 - severity
         
         $success_count = 0;
         $filtered_count = 0;
@@ -328,26 +332,41 @@ function uploadAndParseNessus($link) {
             }
             
             foreach ($host->ReportItem as $item) {
-                $risk_factor = sanitizeString((string)$item->risk_factor);
+                // 讀取 severity 數值
+                $severity = validateInt((string)$item['severity']);
+                if ($severity === false || $severity < 0 || $severity > 4) {
+                    // 如果 severity 無效，預設為 0 (None)
+                    $severity = 0;
+                }
+                
                 $protocol = sanitizeString((string)$item['protocol']);
                 $port = sanitizeString((string)$item['port']);
                 $plugin_name = sanitizeString((string)$item['pluginName']);
                 
-                // 過濾規則 1: Port 0 且 Risk None
-                if ($port == '0' && $risk_factor == 'None') {
+                // 根據 severity 數值取得文字 Risk 等級
+                $risk_factor = $severity_map[$severity] ?? 'None';
+                
+                // 計算 Priority：0=Critical, 4=None
+                // 4 (Critical) -> 0, 0 (None) -> 4
+                $priority = 4 - $severity;
+                
+                // ❗ 警告：當 severity = 0 (None) 時，原 Nessus 報告的 risk_factor 欄位可能為 None。
+                // 這裡的過濾邏輯必須改為依賴 severity 數值。
+                
+                // 過濾規則 1: Port 0 且 severity = 0 (None/Info)
+                if ($port == '0' && $severity == 0) {
                     $filtered_count++;
                     continue;
                 }
                 
-                // 過濾規則 2: Nessus SYN scanner
+                // 過濾規則 2: Nessus SYN scanner (保持不變)
                 if (strpos($plugin_name, 'Nessus SYN scanner') !== false) {
                     $filtered_count++;
                     continue;
                 }
                 
-                $priority = $risk_priority[$risk_factor] ?? 4;
-                
                 try {
+                    // Risk 寫入對應的文字等級，Priority 寫入計算後的值 (0-4)
                     $stmt->bind_param('sssssi', $risk_factor, $ip, $protocol, $port, $plugin_name, $priority);
                     $stmt->execute();
                     $success_count++;
