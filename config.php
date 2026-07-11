@@ -25,15 +25,15 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ==================== 資料庫設定 ====================
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'audit');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: 'audit');
 define('DB_CHARSET', 'utf8mb4');
 
 // ==================== 認證設定 ====================
-$AP_USER = 'admin';
-$AP_PASS = 'admin';
+$AP_USER = getenv('AP_USER') ?: 'admin';
+$AP_PASS = getenv('AP_PASS') ?: 'admin';
 
 // ==================== 安全常數 ====================
 define('MAX_LOGIN_ATTEMPTS', 5);

@@ -1,0 +1,7 @@
+.git
+*.md
+install.sh
+db.sh
+run.sh
+uninstall.sh
+default

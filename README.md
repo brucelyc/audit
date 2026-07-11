@@ -398,6 +398,33 @@ ini_set('display_errors', 1);  // 開發時設為 1，生產環境設為 0
 
 ---
 
+## Docker 部署
+
+本系統也提供 Docker Compose 設定 (`Dockerfile`, `docker-compose.yml`)，會啟動兩個容器：`web` (PHP 8.3 + Apache) 與 `db` (MariaDB 10.11，啟動時自動匯入 `audit.sql`)。
+
+應用程式映像檔已發布至 Docker Hub：[brucelyc/audit](https://hub.docker.com/r/brucelyc/audit)。
+
+**方式一：直接使用已發布的映像檔**（需要本 repo 的 `docker-compose.yml` 與 `audit.sql`）
+```bash
+cp .env.example .env    # 依需求修改密碼與帳號
+docker compose pull     # 拉取 brucelyc/audit:latest，不需自行 build
+docker compose up -d
+```
+
+**方式二：自行 build**
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+訪問 `http://localhost:8080`，預設帳號密碼同樣是 `admin`/`admin`（可在 `.env` 的 `AP_USER`/`AP_PASS` 修改）。
+
+資料庫連線資訊改由環境變數注入（`DB_HOST`/`DB_USER`/`DB_PASS`/`DB_NAME`），`config.php` 若偵測不到環境變數則回退為原本的本機安裝預設值，因此裸機安裝流程 (`install.sh` / `db.sh`) 不受影響。
+
+資料庫與 log 分別存放在 `db_data`、`logs_data` 兩個具名 volume 中，`docker compose down` 不會刪除資料；如需清空重來使用 `docker compose down -v`。
+
+---
+
 ## 版本資訊
 
 **目前版本**: v2.0  
