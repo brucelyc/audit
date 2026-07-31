@@ -411,14 +411,14 @@ git clone https://github.com/brucelyc/audit.git
 cd audit
 # 以上指令供參考
 cp .env.example .env    # 依需求修改密碼與帳號
-docker compose pull     # 拉取 brucelyc/audit:latest，不需自行 build
-docker compose up -d
+sudo docker compose pull     # 拉取 brucelyc/audit:latest，不需自行 build
+sudo docker compose up -d
 ```
 
 **方式二：自行 build**
 ```bash
 cp .env.example .env
-docker compose up -d --build
+sudo docker compose up -d --build
 ```
 
 訪問 `http://localhost:8080`，預設帳號密碼同樣是 `admin`/`admin`（可在 `.env` 的 `AP_USER`/`AP_PASS` 修改）。
