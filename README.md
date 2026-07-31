@@ -406,6 +406,8 @@ ini_set('display_errors', 1);  // 開發時設為 1，生產環境設為 0
 
 **方式一：直接使用已發布的映像檔**（需要本 repo 的 `docker-compose.yml` 與 `audit.sql`）
 ```bash
+sudo apt -y install docker.io docker-compose
+---
 cp .env.example .env    # 依需求修改密碼與帳號
 docker compose pull     # 拉取 brucelyc/audit:latest，不需自行 build
 docker compose up -d
